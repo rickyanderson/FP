@@ -3,5 +3,7 @@ from mainFP import *
 p = Program()
 while p.running:
     p.intro()
-    p.run()
+    if p.play:
+        p.run()
+    p.win_or_lose()
 pygame.quit ()

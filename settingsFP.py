@@ -13,7 +13,6 @@ blocks8 = [(0,433),(21,433)]
 blocks9 = [(0,412),(21,412)]
 blocks10 = [(0,391)]
 blocks11 = [(0,370)]
-blocks12 = [(0,349)]
 blockspeed = [10,12,14,16,18,20,22,24,26,28,30,32]
 
 blocklist = [blocks,blocks2,blocks3,blocks4,blocks5,blocks6,blocks7,blocks8,blocks9,blocks10,blocks11]

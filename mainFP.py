@@ -12,10 +12,10 @@ class Program():
         self.screen = pygame.display.set_mode((screen_width, screen_height)) #Resolution
         self.clock = pygame.time.Clock()
         self.running = True
-        self.play = True
+        self.play = False
         self.all_sprites = pygame.sprite.Group()
         self.blocks = pygame.sprite.Group()
-        self.i = 0 #index
+        self.level = 0 #level
         self.stopped = False
         self.current_block = []
         self.previous_block = []
@@ -25,29 +25,19 @@ class Program():
         self.introbg = pygame.image.load("intro.png")
         self.win_image = pygame.image.load('win.png')
         self.lose_image = pygame.image.load('lose.png')
-        self.angka = 0
-
-    def text_objects(self, text, size, x, y):
-        self.screen.blit(self.introbg,(0,0))
-        font = pygame.font.Font("leadcoat.ttf", size)
-        text_surface = font.render(text, True, (128,0,128))
-        text_rect = text_surface.get_rect()
-        text_rect.x,text_rect.y = x, y
-        self.screen.blit(text_surface, text_rect)
+        self.game_image = pygame.image.load('game.png')
 
     def intro(self):
+        self.screen.blit(self.introbg,(0,0))
         while self.intro1:
             for event in pygame.event.get():
-                #print(event)
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     quit()
-            self.introbg
-            self.text_objects("Play",55,(screen_width/2-60),screen_height/4-30)
-            self.box = pygame.Rect(((screen_width/2-60), screen_height/4-30), (100, 100))
-            if self.box.collidepoint(pygame.mouse.get_pos()):
-                if pygame.event.get([pygame.MOUSEBUTTONDOWN]):
-                    self.intro1 = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self.intro1 = False
+                        self.play = True
 
             pygame.display.update()
             self.clock.tick(15)
@@ -57,10 +47,18 @@ class Program():
         while self.play:
             self.clock.tick(FPS)
             self.event()
-            self.win()
+            self.update()
             self.draw()
 
     def new(self):
+        self.level = 0
+        self.all_sprites.empty()
+        self.blocks.empty()
+        self.stopped = False
+        self.current_block.clear()
+        self.previous_block.clear()
+        self.stacked = 4
+        self.penalty = 0
         for block in blocklist[0]:
             b = Player(*block)
             self.current_block.append(b)
@@ -90,8 +88,8 @@ class Program():
                             self.all_sprites.remove(block_now)
                             self.blocks.remove(block_now)
             # kurangin blok nya kalo ada yg jatoh, caranya jumlah blok yg baru dikurang dengan jumlah blok yg ga jatoh (self.stacked)
-            if len(blocklist[self.i]) >= self.stacked:
-                self.penalty = len(blocklist[self.i]) - self.stacked
+            if len(blocklist[self.level]) >= self.stacked:
+                self.penalty = len(blocklist[self.level]) - self.stacked
             # kalo udh di cek kita kosongin self.previous_block (utk penegecekan blok bawah) untuk yg berikutnya
             self.previous_block.clear()
             # terus kita isi self.previous_block nya dgn self.current_block
@@ -100,25 +98,36 @@ class Program():
                     self.previous_block.append(block)
             # kalo udh di isi self.previous_block nya dgn self.current_block, kita kosongin self.current_block nya (utk pengecekan blok atas) untuk yg berikutnya
             self.current_block.clear()
-            # setelah cek itu baru dibuat diatasnya blok yg baru
-            for index in range(len(blocklist[self.i]) - self.penalty):
-                b = Player(*blocklist[self.i][index])
-                b.currentspeed = blockspeed[self.i] # naikin kecepatannya untuk blok yg baru
-                self.current_block.append(b) # blok yg baru ini di masukin ke self.current_block untuk dibandingin/dicek bawahnya(self.previous_block) itu ada blok lagi atau tidak
-                self.all_sprites.add(b)
-                self.blocks.add(b)
-            self.angka += 1
-            self.stopped = False
-            self.stacked = 0
-            self.penalty = 0
-            print(len(blocklist[self.i]))
 
-    def win(self):
-        print(self.angka)
-        if self.angka <= 10:
-            self.update()
-        elif self.angka >10:
-            self.screen.blit(self.win_image,(0,0))
+            if len(blocklist[self.level]) - self.penalty == 0 or self.level == 10:
+                self.play = False
+            else:
+                # setelah cek itu baru dibuat diatasnya blok yg baru
+                for index in range(len(blocklist[self.level]) - self.penalty):
+                    b = Player(*blocklist[self.level][index])
+                    b.currentspeed = blockspeed[self.level] # naikin kecepatannya untuk blok yg baru
+                    self.current_block.append(b) # blok yg baru ini di masukin ke self.current_block untuk dibandingin/dicek bawahnya(self.previous_block) itu ada blok lagi atau tidak
+                    self.all_sprites.add(b)
+                    self.blocks.add(b)
+                self.stopped = False
+                self.stacked = 0
+                self.penalty = 0
+
+    def win_or_lose(self):
+        self.screen.fill((0, 0, 0))
+        if len(blocklist[self.level]) - self.penalty == 0:
+            self.screen.blit(self.lose_image, (0, 0))
+        elif self.level == 10:
+            self.screen.blit(self.win_image, (0, 0))
+        while not self.intro1:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self.intro1 = True
+            pygame.display.flip()
 
     def event(self):
         for event in pygame.event.get(): #harus ada
@@ -128,12 +137,13 @@ class Program():
                 self.running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    self.i += 1
+                    self.level += 1
                     self.stopped = True
                     for i in self.blocks:
                         i.stop = True
 
     def draw(self):
         self.screen.fill((0, 0, 0))
+        self.screen.blit(self.game_image,(0,0))
         self.all_sprites.draw(self.screen)
         pygame.display.flip()
